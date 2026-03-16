@@ -2737,7 +2737,7 @@ function toast(msg,type=''){
               <p>• Все изменения применяются <strong>мгновенно</strong> на сайте</p>
               <p>• Кнопка <strong>«Применить всё»</strong> синхронизирует DOM с данными</p>
               <p>• <strong>Экспорт/Импорт</strong> — резервные копии в JSON</p>
-              <p>• Войдите как <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e687828b8f88a695938889c8959293828f89">[email&#160;protected]</a></code> / <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">admin123</code></p>
+              <p>• Войдите как <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">admin@promtwavesuno.app</code> / <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">admin123</code></p>
             </div>
           </div>
         </div>
@@ -2864,6 +2864,39 @@ function toast(msg,type=''){
                 <div class="fg"><label class="lb">Новый пароль</label><input type="password" class="fi" id="admPwNew" placeholder="минимум 4 символа"></div>
                 <div class="fg"><label class="lb">Повторите</label><input type="password" class="fi" id="admPwRep" placeholder="••••••••"></div>
                 <button class="adbtn adbtn-p" style="width:100%;" onclick="adminChangePw()">Сохранить</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PROMO GENERATOR -->
+          <div style="margin-top:20px;max-width:700px;">
+            <div class="card">
+              <div class="ch"><div class="ci ci-n">🎁</div><div class="ct"><h2>Генератор промокодов</h2><p>Создать и выдать вручную</p></div></div>
+              <div class="cb">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                  <div class="fg">
+                    <label class="lb">Тариф</label>
+                    <select class="fs" id="promoGenPlan">
+                      <option value="monthly">Monthly — 30 дней</option>
+                      <option value="yearly">Yearly — 365 дней</option>
+                    </select>
+                  </div>
+                  <div class="fg">
+                    <label class="lb">Количество</label>
+                    <input type="number" class="fi" id="promoGenCount" value="1" min="1" max="50">
+                  </div>
+                </div>
+                <button class="adbtn adbtn-g" style="width:100%;margin-bottom:14px;" onclick="adminGenPromos()">🎁 Сгенерировать промокоды</button>
+                <div id="promoGenResult" style="display:none;">
+                  <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-weight:800;">Сгенерированные промокоды:</div>
+                  <div id="promoGenList" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:12px;font-family:var(--mono);font-size:0.82rem;line-height:2;"></div>
+                  <button class="adbtn adbtn-s" style="width:100%;margin-top:8px;" onclick="adminCopyPromos()">📋 Копировать все</button>
+                </div>
+                <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+                  <div style="font-size:0.72rem;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px;font-weight:800;">Активные промокоды (localStorage):</div>
+                  <div id="promoActiveList" style="font-size:0.78rem;line-height:1.9;color:var(--text2);"></div>
+                  <button class="adbtn" style="width:100%;margin-top:8px;font-size:0.72rem;" onclick="renderActivePromos()">🔄 Обновить список</button>
+                </div>
               </div>
             </div>
           </div>
@@ -3541,6 +3574,100 @@ function adminApplyAll(){ applyTagsToDOM('moods'); applyTagsToDOM('instrs'); app
 function adminExportCfg(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(AD,null,2)],{type:'application/json'})); a.download='suno-config.json'; a.click(); toast('Конфигурация экспортирована','ok'); }
 function adminImportCfg(input){ const f=input.files[0]; if(!f) return; const r=new FileReader(); r.onload=e=>{ try{ const d=JSON.parse(e.target.result); if(d.moods) AD.moods=d.moods; if(d.instrs) AD.instrs=d.instrs; if(d.genres) AD.genres=d.genres; if(d.struct) AD.struct=d.struct; if(d.mast) AD.mast=d.mast; if(d.examples) AD.examples=d.examples; renderAdminAll(); adminApplyAll(); toast('Импортировано ✓','ok'); }catch(err){ toast('Ошибка JSON','err'); } }; r.readAsText(f); input.value=''; }
 function adminChangePw(){ const nw=$('admPwNew').value, rp=$('admPwRep').value; if(nw.length<4){toast('Минимум 4 символа','err');return;} if(nw!==rp){toast('Пароли не совпадают','err');return;} const users=getUsers(); users['admin_root'].pw=btoa(nw); saveUsers(users); $('admPwNew').value=''; $('admPwRep').value=''; toast('Пароль admin обновлён ✓','ok'); }
+
+// ── Promo Generator ──
+var LS_PROMOS = 'suno_manual_promos';
+
+function getManualPromos(){ return lsGet(LS_PROMOS) || {}; }
+function saveManualPromos(p){ lsSet(LS_PROMOS, p); }
+
+function adminGenPromos(){
+  var plan  = $('promoGenPlan').value;
+  var count = Math.min(50, Math.max(1, parseInt($('promoGenCount').value)||1));
+  var days  = plan === 'yearly' ? 365 : 30;
+  var promos = getManualPromos();
+  var generated = [];
+
+  for(var i=0; i<count; i++){
+    var code = 'PWS-' + Math.random().toString(36).slice(2,6).toUpperCase()
+                      + Math.random().toString(36).slice(2,6).toUpperCase();
+    promos[code] = { plan, days, createdAt: Date.now(), usedBy: null };
+    generated.push(code);
+  }
+
+  saveManualPromos(promos);
+
+  var listEl = $('promoGenList');
+  listEl.innerHTML = generated.map(function(c){
+    return '<span style="color:var(--green);">'+c+'</span> <span style="color:var(--text4);font-size:0.72rem;">'+plan+' · '+days+' дней</span>';
+  }).join('<br>');
+
+  $('promoGenResult').style.display = 'block';
+  renderActivePromos();
+  toast('Создано ' + count + ' промокод(ов) ✓', 'ok');
+}
+
+function adminCopyPromos(){
+  var text = $('promoGenList').innerText.split('\n').map(function(l){ return l.split(' ')[0]; }).join('\n');
+  navigator.clipboard.writeText(text).then(function(){ toast('Скопировано ✓','ok'); });
+}
+
+function renderActivePromos(){
+  var promos = getManualPromos();
+  var el = $('promoActiveList');
+  if(!el) return;
+  var keys = Object.keys(promos);
+  if(!keys.length){ el.innerHTML = '<span style="color:var(--text4);">Нет активных промокодов</span>'; return; }
+  el.innerHTML = keys.map(function(code){
+    var p = promos[code];
+    var used = p.usedBy ? '<span style="color:var(--text4);">использован</span>' : '<span style="color:var(--green);">активен</span>';
+    return '<span style="font-family:var(--mono);color:var(--blue);">'+code+'</span> · '+p.plan+' · '+used;
+  }).join('<br>');
+}
+
+// Patch activatePromoCode to also check localStorage promos
+var _origActivatePromo = typeof activatePromoCode === 'function' ? activatePromoCode : null;
+function activatePromoCode(){
+  var promo = ($('promoInput').value||'').trim().toUpperCase();
+  var errEl = $('promoError');
+  errEl.style.display = 'none';
+  if(!promo){ errEl.textContent='Введите промокод'; errEl.style.display='block'; return; }
+
+  // Check localStorage manual promos first
+  var promos = getManualPromos();
+  var code = promos[promo];
+  if(code && !code.usedBy){
+    code.usedBy = 'manual-' + Date.now();
+    code.usedAt = Date.now();
+    saveManualPromos(promos);
+    var u = typeof getCurrentUser==='function' ? getCurrentUser() : null;
+    if(u){
+      u.isPremium=true; u.premiumPlan=code.plan;
+      u.premiumExp=Date.now()+code.days*86400000;
+      if(typeof saveUser==='function') saveUser(u);
+      if(typeof applyPremium==='function') applyPremium(u);
+    }
+    if(typeof closeModal==='function') closeModal();
+    if(typeof toast==='function') toast('🎉 Premium активирован на '+code.days+' дней!','ok');
+    return;
+  }
+  if(code && code.usedBy){ errEl.textContent='Промокод уже использован'; errEl.style.display='block'; return; }
+
+  // Fallback to Railway server
+  fetch(YK_CONFIG.PROMO_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({promo, userId: typeof getCurrentUser==='function'&&getCurrentUser()?.uid||'guest'})
+  }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,data:d}; }); })
+  .then(function(res){
+    if(!res.ok){ errEl.textContent=res.data.error||'Неверный промокод'; errEl.style.display='block'; return; }
+    var u=typeof getCurrentUser==='function'?getCurrentUser():null;
+    if(u){ u.isPremium=true; u.premiumPlan=res.data.plan; u.premiumExp=res.data.expiresAt;
+      if(typeof saveUser==='function') saveUser(u);
+      if(typeof applyPremium==='function') applyPremium(u); }
+    if(typeof closeModal==='function') closeModal();
+    if(typeof toast==='function') toast('🎉 Premium активирован на '+res.data.days+' дней!','ok');
+  }).catch(function(){ errEl.textContent='Ошибка подключения к серверу'; errEl.style.display='block'; });
+}
 
 // ── INIT ──
 (function(){
