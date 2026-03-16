@@ -1061,9 +1061,8 @@ footer p+p { margin-top:2px; }
 
           <!-- MODE TOGGLE -->
           <div class="mtog">
-            <button class="mb on" data-mode="simple" id="mb-simple">🎯 Простой</button>
-            <button class="mb locked" id="mb-adv" onclick="handleLockedBtn(event)">🔧 Продвинутый <span class="lkico">🔒</span></button>
-            <button class="mb locked" id="mb-pro" onclick="handleLockedBtn(event)">🧬 Pro <span class="lkico">🔒</span></button>
+            <button class="mb on" data-mode="simple" id="mb-simple">🆓 Free</button>
+            <button class="mb locked" id="mb-adv" onclick="handleLockedBtn(event)">⭐ Premium <span class="lkico">🔒</span></button>
           </div>
 
           <div class="fg">
@@ -2209,13 +2208,12 @@ function activateModeBtn(btn) {
   $$('.mb').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
   S.appMode = btn.dataset.mode;
-  // Show/hide sections based on mode
-  const isAdv = S.appMode === 'advanced' || S.appMode === 'pro';
-  const isPro = S.appMode === 'pro';
-  $('advContent').style.display  = isAdv ? 'block' : 'none';
-  $('proContent').style.display  = isPro ? 'block' : 'none';
-  $('advGate').style.display     = 'none';
-  $('proGate').style.display     = 'none';
+  // Premium button (id=mb-adv) shows BOTH advanced + pro content
+  const isPremium = S.appMode === 'advanced' || S.appMode === 'pro';
+  $('advContent').style.display = isPremium ? 'block' : 'none';
+  $('proContent').style.display = isPremium ? 'block' : 'none';
+  $('advGate').style.display    = 'none';
+  $('proGate').style.display    = 'none';
 }
 
 // ── TAGS ──
@@ -2639,14 +2637,15 @@ function activatePremium(){
   // Update note
   $('noteEl').innerHTML='<span>✅</span><span>Все режимы разблокированы. Используйте <strong>Продвинутый</strong> и <strong>Pro</strong>.</span>';
   // Unlock mode buttons
-  ['mb-adv','mb-pro'].forEach(id=>{
+  ['mb-adv'].forEach(id=>{
     const b=$(id);
     b.classList.remove('locked');
     b.onclick=null;
     b.querySelector('.lkico')?.remove();
   });
+  if($('mb-pro')){ $('mb-pro').classList.remove('locked'); $('mb-pro').onclick=null; $('mb-pro').querySelector('.lkico')?.remove(); }
   $('mb-adv').dataset.mode='advanced';
-  $('mb-pro').dataset.mode='pro';
+  if($('mb-pro')) $('mb-pro').dataset.mode='pro';
   $$('.mb').forEach(b=>{
     b.addEventListener('click', function(){
       if(!S.isPremium && this.classList.contains('locked')) return;
@@ -2663,12 +2662,13 @@ function deactivatePremium(){
   $('chipEl').className='chip free';$('chipEl').innerHTML='🆓 Бесплатно';
   $('pBanner').style.display='';
   $('noteEl').innerHTML='<span>🔒</span><span>Режимы <strong>Продвинутый</strong> и <strong>Pro</strong> — только в Premium.</span>';
-  ['mb-adv','mb-pro'].forEach(id=>{
+  ['mb-adv'].forEach(id=>{
     const b=$(id);
     b.classList.add('locked');
     if(!b.querySelector('.lkico')){ const ico=document.createElement('span'); ico.className='lkico'; ico.textContent='🔒'; b.appendChild(ico); }
     b.onclick=handleLockedBtn;
   });
+  if($('mb-pro')){ const b=$('mb-pro'); b.classList.add('locked'); if(!b.querySelector('.lkico')){ const ico=document.createElement('span'); ico.className='lkico'; ico.textContent='🔒'; b.appendChild(ico); } b.onclick=handleLockedBtn; }
   $('advContent').style.display='none';
   $('proContent').style.display='none';
   $('advGate').style.display='';
@@ -5426,4 +5426,10 @@ document.getElementById('footerYear').textContent = new Date().getFullYear();
       <div class="tour-step-dots" id="tourDots"></div>
       <div class="tour-btn-row">
         <button class="tour-btn tour-btn-skip" onclick="endTour()">Пропустить</button>
-        <button c
+        <button class="tour-btn tour-btn-next" id="tourNextBtn" onclick="tourNext()">Далее →</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
