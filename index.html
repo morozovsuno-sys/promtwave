@@ -125,6 +125,9 @@ h1 em { color: var(--blue); font-style: normal; }
   .burger { display:flex; }
   .logo-name { font-size:.92rem; }
 
+  /* Hide stats on mobile */
+  .stats { display:none; }
+
   /* Wrap */
   .wrap { padding:0 12px; }
 
@@ -249,11 +252,12 @@ h1 em { color: var(--blue); font-style: normal; }
   color: var(--text3); cursor: pointer; border-radius: 6px;
   font-weight: 700; font-size: 0.78rem; font-family: inherit;
   transition: all 0.13s; display: flex; align-items: center; justify-content: center; gap: 4px;
+  line-height: 1;
 }
 .mb.on { background: var(--bg3); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
 .mb.locked { color: var(--text4) !important; cursor: not-allowed; }
 .mb.locked:hover { background: transparent !important; color: var(--text4) !important; }
-.lkico { font-size: 0.68rem; }
+.lkico { font-size: 0.68rem; vertical-align: middle; line-height: 1; display:inline-flex; align-items:center; }
 
 /* TAGS */
 .tags { display: flex; flex-direction: column; gap: 0; }
