@@ -76,6 +76,21 @@ body {
 .upbtn { padding: 7px 14px; background: var(--blue); color: #fff; border: none; border-radius: var(--r); font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.13s; }
 .upbtn:hover { background: #4a8df5; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(91,156,246,0.45); }
 
+/* ══ MOBILE BURGER ══ */
+.burger { display:none; flex-direction:column; gap:4px; cursor:pointer; padding:6px; border:none; background:transparent; flex-shrink:0; }
+.burger span { display:block; width:20px; height:2px; background:var(--text3); border-radius:2px; transition:all .2s; }
+.burger.open span:nth-child(1) { transform:rotate(45deg) translate(4px,4px); }
+.burger.open span:nth-child(2) { opacity:0; }
+.burger.open span:nth-child(3) { transform:rotate(-45deg) translate(4px,-4px); }
+
+/* Mobile nav drawer */
+.mobile-nav { display:none; position:fixed; top:56px; left:0; right:0; bottom:0; background:var(--bg); z-index:399; padding:16px; overflow-y:auto; flex-direction:column; gap:6px; }
+.mobile-nav.open { display:flex; }
+.mobile-nav .nb { font-size:1rem; padding:12px 16px; border-radius:10px; text-align:left; border:1px solid transparent; }
+.mobile-nav .nb.on { border-color:var(--blue-b); }
+.mobile-nav-actions { display:flex; gap:8px; margin-top:8px; padding-top:16px; border-top:1px solid var(--border); }
+.mobile-nav-actions button { flex:1; }
+
 /* SECTIONS */
 .sec { display: none; }
 .sec.on { display: block; animation: up .2s ease; }
@@ -98,6 +113,106 @@ h1 em { color: var(--blue); font-style: normal; }
 
 /* CARD */
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r3); overflow: hidden; box-shadow: var(--sh); }
+
+/* ══════════════════════════════════
+   MOBILE STYLES — max-width: 768px
+   ══════════════════════════════════ */
+@media(max-width:768px){
+  /* Topbar */
+  .topbar-inner { padding:0 14px; height:52px; }
+  .nav { display:none; }
+  .tr .chip, .tr .upbtn { display:none; }
+  .burger { display:flex; }
+  .logo-name { font-size:.92rem; }
+
+  /* Wrap */
+  .wrap { padding:0 12px; }
+
+  /* Hero */
+  .hero { padding:24px 0 20px; }
+  h1 { font-size:1.5rem; }
+  .sub { font-size:0.84rem; margin-bottom:18px; }
+  .stats { flex-wrap:wrap; width:100%; border-radius:var(--r); }
+  .stt { flex:1 1 45%; border-bottom:1px solid var(--border); padding:8px 10px; }
+  .stt:nth-child(even) { border-right:none; }
+  .stn { font-size:1rem; }
+  .stl { font-size:0.58rem; }
+
+  /* Main grid */
+  .grid { grid-template-columns:1fr; gap:12px; padding-bottom:40px; }
+
+  /* Cards */
+  .card { border-radius:12px; }
+  .ch { padding:14px 14px 10px; }
+  .cb { padding:14px; }
+
+  /* Result panel — sticky bottom on mobile */
+  .rpanel { position:static; }
+
+  /* Form fields */
+  .fg { margin-bottom:12px; }
+  .fi, .fs { font-size:0.9rem; padding:9px 12px; }
+  .lb { font-size:0.72rem; }
+
+  /* Mode buttons */
+  .modes { gap:5px; }
+  .mb { padding:6px 10px; font-size:0.75rem; }
+
+  /* Generate button */
+  .genbtn { padding:13px; font-size:0.9rem; }
+
+  /* Tags */
+  .tag { padding:4px 9px; font-size:0.72rem; }
+  .tag-group { padding:8px 0 10px; }
+  .tag-group-label { font-size:0.63rem; }
+
+  /* Result blocks */
+  .rblock { margin-bottom:12px; }
+  .rbox { font-size:0.8rem; padding:10px 12px; }
+
+  /* Blog */
+  .blog-grid { grid-template-columns:1fr !important; }
+  .blog-featured { grid-template-columns:1fr !important; }
+  .sechead { padding:20px 0 16px; }
+  .ptit { font-size:1.3rem; }
+
+  /* Prm grid */
+  .prm-grid { grid-template-columns:1fr !important; }
+  .prm-section { margin-top:24px; padding-top:20px; }
+  .prm-section-head { flex-direction:column; align-items:flex-start; }
+  .prm-cats { flex-wrap:wrap; }
+
+  /* Modal */
+  .modal { border-radius:16px 16px 0 0; position:fixed; bottom:0; top:auto; transform:none !important; width:100%; max-width:100%; max-height:90vh; }
+  .modal-overlay { align-items:flex-end; }
+
+  /* Cabinet */
+  .cab-panel { border-radius:16px 16px 0 0; }
+  .cab-tabs { overflow-x:auto; flex-wrap:nowrap; gap:2px; }
+  .cab-tab { white-space:nowrap; font-size:0.72rem; padding:7px 10px; }
+
+  /* Admin tabs */
+  .adm-itabs { overflow-x:auto; flex-wrap:nowrap; }
+  .adm-itab { white-space:nowrap; font-size:0.7rem; padding:6px 9px; }
+
+  /* Examples grid */
+  .egrid { grid-template-columns:1fr !important; }
+
+  /* Footer */
+  .footer-inner { flex-direction:column; gap:8px; text-align:center; }
+}
+
+/* ══ Extra small — 480px ══ */
+@media(max-width:480px){
+  h1 { font-size:1.3rem; }
+  .logo-name { display:none; }
+  .topbar-inner { height:48px; }
+  .mobile-nav { top:48px; }
+  .stt { flex:1 1 100%; border-right:none; }
+  .bpm-row { flex-direction:column; gap:8px; }
+  .genbtn { font-size:0.85rem; }
+  .prm-section-title { font-size:1rem; }
+}
 .ch { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
 .ci { width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
 .ci-b { background: var(--blue-d); border: 1px solid var(--blue-b); }
@@ -893,7 +1008,24 @@ footer p+p { margin-top:2px; }
       <button class="chip free" id="chipEl" onclick="openModal()">🆓 Бесплатно</button>
       <button class="upbtn" onclick="openModal()">✨ Premium</button>
       <button class="usr-btn" id="userBtn" onclick="openUserAuth()">👤 Войти</button>
+      <button class="burger" id="burgerBtn" onclick="toggleMobileNav()" aria-label="Меню">
+        <span></span><span></span><span></span>
+      </button>
     </div>
+  </div>
+</div>
+
+<!-- MOBILE NAV DRAWER -->
+<div class="mobile-nav" id="mobileNav">
+  <button class="nb" data-s="gen"  onclick="mobileNavGo('gen')">🎹 Генератор</button>
+  <button class="nb" data-s="struct" onclick="mobileNavGo('struct')">📐 Структура</button>
+  <button class="nb" data-s="mast"  onclick="mobileNavGo('mast')">🎚️ Мастеринг</button>
+  <button class="nb" data-s="ex"   onclick="mobileNavGo('ex')">💡 Примеры & Промты</button>
+  <button class="nb" data-s="blog" onclick="mobileNavGo('blog')">📰 Блог & Справочник</button>
+  <div class="mobile-nav-actions">
+    <button class="chip free" id="mobileChipEl" onclick="openModal();closeMobileNav()">🆓 Бесплатно</button>
+    <button class="upbtn" style="flex:1;" onclick="openModal();closeMobileNav()">✨ Premium</button>
+    <button class="usr-btn" id="mobileUserBtn" onclick="openUserAuth();closeMobileNav()">👤 Войти</button>
   </div>
 </div>
 
@@ -2018,6 +2150,35 @@ const $  = id => document.getElementById(id);
 const $$ = s  => document.querySelectorAll(s);
 
 // ── NAV ──
+// ── MOBILE NAV ──
+function toggleMobileNav(){
+  var nav = document.getElementById('mobileNav');
+  var btn = document.getElementById('burgerBtn');
+  var open = nav.classList.toggle('open');
+  btn.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+function closeMobileNav(){
+  document.getElementById('mobileNav').classList.remove('open');
+  document.getElementById('burgerBtn').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function mobileNavGo(id){
+  // Sync with desktop nav
+  $$('.nb').forEach(x => x.classList.remove('on'));
+  $$('[data-s="'+id+'"]').forEach(b => b.classList.add('on'));
+  $$('.sec').forEach(s => s.classList.remove('on'));
+  $(id).classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='blog'){ closeBlogPost(); renderBlog(); }
+  if(id==='ex'){ renderPrompts(); }
+  closeMobileNav();
+}
+// Close mobile nav on desktop resize
+window.addEventListener('resize', function(){
+  if(window.innerWidth > 768) closeMobileNav();
+});
+
 $$('.nb').forEach(b => b.addEventListener('click', () => {
   $$('.nb').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
@@ -2737,7 +2898,7 @@ function toast(msg,type=''){
               <p>• Все изменения применяются <strong>мгновенно</strong> на сайте</p>
               <p>• Кнопка <strong>«Применить всё»</strong> синхронизирует DOM с данными</p>
               <p>• <strong>Экспорт/Импорт</strong> — резервные копии в JSON</p>
-              <p>• Войдите как <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">admin@promtwavesuno.app</code> / <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">admin123</code></p>
+              <p>• Войдите как <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4322272e2a2d0333312c2e373422352630362d2c6d223333">[email&#160;protected]</a></code> / <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">admin123</code></p>
             </div>
           </div>
         </div>
@@ -2913,7 +3074,7 @@ function toast(msg,type=''){
 
 
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ════════════════════════════════════════════════
 //  UNIFIED AUTH + CABINET + ADMIN SYSTEM
 // ════════════════════════════════════════════════
@@ -5261,13 +5422,4 @@ document.getElementById('footerYear').textContent = new Date().getFullYear();
       <div class="tour-step-dots" id="tourDots"></div>
       <div class="tour-btn-row">
         <button class="tour-btn tour-btn-skip" onclick="endTour()">Пропустить</button>
-        <button class="tour-btn tour-btn-next" id="tourNextBtn" onclick="tourNext()">Далее →</button>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- ══ HOTKEYS HINT ══ -->
-<div class="hotkeys-hint" id="hotkeysHint"></div>
-
-</body>
-</html>
+        <button c
