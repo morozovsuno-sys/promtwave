@@ -2470,6 +2470,9 @@ function backToEmail(){
 //       - возвращает JSON { confirmation_token: "ct-..." }
 //  3. Впишите URL вашего эндпоинта в BACKEND_URL ниже
 //
+const RAILWAY_URL = 'https://promtwave-server-production.up.railway.app';
+const ADMIN_KEY   = 'promtwave_admin_2026'; // совпадает с Railway ADMIN_KEY
+
 const YK_CONFIG = {
   BACKEND_URL: 'https://promtwave-server-production.up.railway.app/api/create-payment', // ← Railway URL
   PROMO_URL:   'https://promtwave-server-production.up.railway.app/api/activate-promo',  // ← Railway URL
@@ -3059,6 +3062,32 @@ function toast(msg,type=''){
             </div>
           </div>
 
+          <!-- GRANT PREMIUM -->
+          <div style="margin-top:20px;max-width:700px;">
+            <div class="card">
+              <div class="ch"><div class="ci ci-n">⭐</div><div class="ct"><h2>Выдать Premium вручную</h2><p>Отправит промокод на email + автоактивация при входе</p></div></div>
+              <div class="cb">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+                  <div class="fg" style="grid-column:1/3;">
+                    <label class="lb">Email пользователя</label>
+                    <input type="email" class="fi" id="grantEmail" placeholder="user@example.com">
+                  </div>
+                  <div class="fg">
+                    <label class="lb">Срок</label>
+                    <select class="fs" id="grantDays">
+                      <option value="30">30 дней</option>
+                      <option value="90">90 дней</option>
+                      <option value="180">180 дней</option>
+                      <option value="365">365 дней</option>
+                    </select>
+                  </div>
+                </div>
+                <button class="adbtn adbtn-p" style="width:100%;" onclick="adminGrantPremium()">⭐ Выдать Premium и отправить письмо</button>
+                <div id="grantResult" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.3);border-radius:8px;font-size:.78rem;color:var(--green);"></div>
+              </div>
+            </div>
+          </div>
+
           <!-- PROMO GENERATOR -->
           <div style="margin-top:20px;max-width:700px;">
             <div class="card">
@@ -3226,6 +3255,8 @@ function loginUser(user){
   setCurrentUser(user);
   updateUserBtn(user);
   if(isAdmin(user)) activatePremium();
+  // Проверяем pending premium с сервера
+  setTimeout(function(){ checkPendingPremium(user); }, 1000);
 }
 
 function doLogout(){
@@ -3797,6 +3828,30 @@ function adminRevokePremium(uid){
   toast('Premium отозван у ' + u.name, 'ok');
 }
 function adminDelUser(uid){ if(!confirm('Удалить пользователя и все его данные?')) return; const users=getUsers(); delete users[uid]; saveUsers(users); localStorage.removeItem(LS_SAVED+uid); localStorage.removeItem(LS_HIST+uid); renderUsersTable(); renderAdmStats(); toast('Пользователь удалён'); }
+function adminGrantPremium(){
+  var email = ($('grantEmail').value || '').trim();
+  var days  = parseInt($('grantDays').value) || 30;
+  var res   = $('grantResult');
+  if(!email || !email.includes('@')){ toast('Введите корректный email','err'); return; }
+  res.style.display='none';
+  fetch(RAILWAY_URL + '/api/admin/grant-premium', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ email, days, adminKey: ADMIN_KEY })
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if(data.ok){
+      res.style.display='block';
+      res.innerHTML = '✅ Промокод <strong>' + data.promo + '</strong> выдан · ' +
+        'Письмо: ' + (data.emailSent ? 'отправлено ✓' : 'ошибка (проверь Resend)') +
+        '<br>Пользователь также получит Premium автоматически при следующем входе.';
+      toast('Premium выдан для ' + email, 'ok');
+      $('grantEmail').value = '';
+    } else {
+      toast(data.error || 'Ошибка','err');
+    }
+  }).catch(function(){ toast('Ошибка соединения с сервером','err'); });
+}
+
 function adminPurgeGuests(){ if(!confirm('Удалить всех гостевых пользователей?')) return; const users=getUsers(); let cnt=0; Object.values(users).filter(u=>u.isGuest||u.role==='guest').forEach(u=>{ delete users[u.uid]; localStorage.removeItem(LS_SAVED+u.uid); localStorage.removeItem(LS_HIST+u.uid); cnt++; }); saveUsers(users); renderUsersTable(); renderAdmStats(); toast(`Удалено ${cnt} гостей`); }
 
 // ── APPLY ALL ──
@@ -3907,6 +3962,8 @@ function activatePromoCode(){
   if(user){
     updateUserBtn(user);
     if(isAdmin(user)) activatePremium();
+    // Проверяем pending premium с сервера
+    setTimeout(function(){ checkPendingPremium(user); }, 1500);
   }
 })();
 </script>
