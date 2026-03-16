@@ -668,7 +668,8 @@ footer p+p { margin-top:2px; }
 
 /* STATS GRID */
 .prof-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
-.ps { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r2); padding:14px; text-align:center; }
+.ps { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r2); padding:14px; text-align:center; min-width:0; }
+@media(max-width:500px){ .prof-stats { grid-template-columns:1fr; } }
 .ps-n { font-size:1.6rem; font-weight:800; letter-spacing:-.4px; }
 .ps-l { font-size:0.68rem; color:var(--text3); text-transform:uppercase; letter-spacing:.8px; font-weight:700; margin-top:3px; }
 
@@ -2826,6 +2827,7 @@ function toast(msg,type=''){
         </div>
 
         <div class="prof-grid">
+          <!-- Данные аккаунта -->
           <div class="card">
             <div class="ch"><div class="ci ci-b">👤</div><div class="ct"><h2>Данные аккаунта</h2><p>Имя и email</p></div></div>
             <div class="cb">
@@ -2834,24 +2836,31 @@ function toast(msg,type=''){
               <button class="auth-submit" onclick="saveProfile()" style="margin-top:2px;">💾 Сохранить</button>
             </div>
           </div>
+
+          <!-- Сменить пароль -->
           <div class="card">
-            <div class="ch"><div class="ci ci-n">🔐</div>
-              <div class="ref-box" id="refBox">
-                <div class="ref-box-title">🎁 Реферальная программа</div>
-                <p style="font-size:0.78rem;color:var(--text3);margin-bottom:10px;">Пригласите друга — оба получат 7 дней Premium бесплатно</p>
-                <div class="ref-link-row">
-                  <div class="ref-link" id="refLinkEl">—</div>
-                  <button class="ref-copy-btn" onclick="copyRefLink()">Копировать</button>
-                </div>
-                <div class="ref-stats">
-                  <div class="ref-stat"><div class="ref-stat-n" id="refInvited">0</div><div class="ref-stat-l">Приглашено</div></div>
-                  <div class="ref-stat"><div class="ref-stat-n" id="refBonusDays">0</div><div class="ref-stat-l">Бонусных дней</div></div>
-                </div>
-              </div><div class="ct"><h2>Сменить пароль</h2><p>Безопасность</p></div></div>
+            <div class="ch"><div class="ci ci-n">🔐</div><div class="ct"><h2>Сменить пароль</h2><p>Безопасность</p></div></div>
             <div class="cb">
               <div class="fg"><label class="lb">Текущий пароль</label><input type="password" class="fi" id="profPwCur" placeholder="••••••••"></div>
               <div class="fg"><label class="lb">Новый пароль</label><input type="password" class="fi" id="profPwNew" placeholder="••••••••"></div>
               <button class="auth-submit" onclick="saveProfPw()" style="margin-top:2px;">🔑 Обновить</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Реферальная программа — отдельная карточка -->
+        <div class="card" style="margin-top:16px;">
+          <div class="ch"><div class="ci ci-g">🎁</div><div class="ct"><h2>Реферальная программа</h2><p>Пригласите друга — оба получат 7 дней Premium бесплатно</p></div></div>
+          <div class="cb">
+            <div class="ref-box" id="refBox">
+              <div class="ref-link-row">
+                <div class="ref-link" id="refLinkEl">—</div>
+                <button class="ref-copy-btn" onclick="copyRefLink()">Копировать</button>
+              </div>
+              <div class="ref-stats" style="margin-top:12px;">
+                <div class="ref-stat"><div class="ref-stat-n" id="refInvited">0</div><div class="ref-stat-l">Приглашено</div></div>
+                <div class="ref-stat"><div class="ref-stat-n" id="refBonusDays">0</div><div class="ref-stat-l">Бонусных дней</div></div>
+              </div>
             </div>
           </div>
         </div>
