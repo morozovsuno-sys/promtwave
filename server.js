@@ -289,5 +289,6 @@ https://promtwave-production.up.railway.app/
   console.log('Telegram bot webhook configured');
   
 
-initDB().then(() => seedAdmin()).then(() => {');
-console.log('Telegram bot started (webhook mode)');});
+initDB().then(() => seedAdmin()).then(() => {
+    app.listen(PORT, () => console.log(`Server on ${PORT}`));
+});
