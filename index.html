@@ -2662,6 +2662,7 @@ function activatePremium(){
     const b=$(id);
     b.classList.remove('locked');
     b.onclick=null;
+    b.removeAttribute('onclick');
     b.querySelector('.lkico')?.remove();
   });
   if($('mb-pro')){ $('mb-pro').classList.remove('locked'); $('mb-pro').onclick=null; $('mb-pro').querySelector('.lkico')?.remove(); }
