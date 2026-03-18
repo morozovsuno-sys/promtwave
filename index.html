@@ -2931,7 +2931,7 @@ function toast(msg,type=''){
               <p>• Все изменения применяются <strong>мгновенно</strong> на сайте</p>
               <p>• Кнопка <strong>«Применить всё»</strong> синхронизирует DOM с данными</p>
               <p>• <strong>Экспорт/Импорт</strong> — резервные копии в JSON</p>
-              <p>• Войдите как <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4322272e2a2d0333312c2e373422352630362d2c6d223333">[email&#160;protected]</a></code> / <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">admin123</code></p>
+              <p>• Войдите как <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4322272e2a2d0333312c2e373422352630362d2c6d223333">[email&#160;protected]</a></code> / <code style="color:var(--red);background:var(--bg3);padding:1px 5px;border-radius:4px;">Admin230230230</code></p>
             </div>
           </div>
         </div>
@@ -3143,7 +3143,7 @@ const LS_CUR   = 'suno_current_user';
 const LS_SAVED = 'suno_saved_';
 const LS_HIST  = 'suno_history_';
 const MAX_HIST = 50;
-const ADMIN_EMAIL = 'admin@promtwavesuno.app';
+const ADMIN_EMAIL = 'morozovsuno@gmail.com';
 const ADMIN_CFG_KEY = 'suno_admin_config';
 
 // ── Helpers ──
@@ -3173,7 +3173,7 @@ function isAdmin(u){ return u && u.role==='admin'; }
   const existing=Object.values(users).find(u=>u.email===ADMIN_EMAIL);
   if(!existing){
     const uid='admin_root';
-    users[uid]={uid,name:'Administrator',email:ADMIN_EMAIL,pw:btoa('admin123'),role:'admin',createdAt:Date.now(),isGuest:false};
+    users[uid]={uid,name:'Administrator',email:ADMIN_EMAIL,pw:btoa('Admin230230230'),role:'admin',createdAt:Date.now(),isGuest:false};
     saveUsers(users);
   }
 })();
