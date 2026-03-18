@@ -66,12 +66,12 @@ async function seedAdmin() {
   const password = process.env.ADMIN_PASSWORD || 'Admin2026!';
   const name = 'Administrator';
   try {
+    const hash = await bcrypt.hash(password, 10);
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
-      await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['admin', email]);
+      await pool.query('UPDATE users SET role = $1, password = $2 WHERE email = $3', ['admin', hash, email]);
       return;
     }
-    const hash = await bcrypt.hash(password, 10);
     await pool.query(
       'INSERT INTO users (email, password, name, role, plan, credits) VALUES ($1, $2, $3, $4, $5, $6)',
       [email, hash, name, 'admin', 'ultra', 99999]
