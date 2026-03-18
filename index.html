@@ -1735,17 +1735,17 @@ footer p+p { margin-top:2px; }
           </div>
 
           <!-- PRO CONTENT (hidden until Premium) -->1640
-           
+
           <div id="proContent" style="display:none;">
             <hr class="div">
             <div class="g2 fg">
               <div>
                           <label class="lb">Гамма (Scale)</label>
-                          <select class="fs" id="scaleEl"><option value="">Нет</option><option value="pentatonic major">Пентатоника мажорная</option><option value="pentatonic minor">Пентатоника минорная</option><option value="blues scale">Блюзовая гамма</option><option value="harmonic minor">Гармонический минор</option></select>
+                                          <select class="fs" id="scaleEl"><option value="">Нет</option><option value="pentatonic major">Пентатоника мажорная</option><option value="pentatonic minor">Пентатоника минорная</option><option value="blues scale">Блюзовая гамма</option><option value="major">Мажор (Major)</option><option value="minor">Минор (Minor)</option><option value="harmonic minor">Гармонический минор</option><option value="melodic minor">Мелодический минор</option><option value="dorian">Дориан</option><option value="phrygian">Фригийский</option><option value="lydian">Лидийский</option><option value="mixolydian">Миксолидийский</option><option value="locrian">Локрийский</option><option value="whole tone">Целотонная</option><option value="diminished">Уменьшенная</option><option value="chromatic">Хроматическая</option></select>
               </div>
               <div>
                         <label class="lb">Аккорды</label>
-                <input type="text" class="fi" id="chordEl" placeholder="I, ii, V, vi">
+                            <select class="fs" id="chordEl"><option value="">Не указывать</option><option value="I-V-vi-IV">Поп-прогрессия (I-V-vi-IV)</option><option value="I-IV-V">Блюзовая (I-IV-V)</option><option value="ii-V-I">Джазовая (ii-V-I)</option><option value="I-vi-IV-V">Олди (I-vi-IV-V)</option><option value="vi-IV-I-V">Минорная поп (vi-IV-I-V)</option><option value="I-III-IV-iv">Мажор-минор (I-III-IV-iv)</option><option value="I-V-vi-iii-IV">Пахельбель (I-V-vi-iii-IV)</option><option value="i-VII-VI-VII">Эолиева прогрессия (i-VII-VI-VII)</option><option value="i-iv-VII-III">Минорная цепь (i-iv-VII-III)</option><option value="I-II-IV-I">Мажорная цепь (I-II-IV-I)</option><option value="I-IV-vi-V">Альтернативная (I-IV-vi-V)</option></select>
               </div>
             </div>
           </div>
@@ -2265,7 +2265,7 @@ $('timeEl').addEventListener('change', e => S.time = e.target.value);
 $('bpmRange').addEventListener('input', e => { S.bpm = +e.target.value; $('bpmDisp').textContent = S.bpm + ' BPM'; });
 $('addDesc').addEventListener('input', e => S.desc = e.target.value);
 $('scaleEl').addEventListener('change', e => S.scale = e.target.value);
-$('chordEl').addEventListener('input', e => S.chords = e.target.value);
+  $('chordEl').addEventListener('change', e => S.chords = e.target.value);
 
 // ── GENERATE ──
 $('genBtn').addEventListener('click', generate);
@@ -2339,7 +2339,8 @@ $('clrBtn').addEventListener('click', () => {
   clearState();
   $('trackName').value=''; $('mainGenre').value=''; $('addDesc').value='';
   $('bpmRange').value=120; $('bpmDisp').textContent='120 BPM';
-  if(S.isPremium){$('keyEl').value='';$('modeEl').value='';$('timeEl').value='4/4';$('scaleEl').value='';$('chordEl').value='';}
+  if(S.isPremium){$('keyEl').value='';$('modeEl').value='';$('timeEl').value='4/4';$('1744
+  ').value='';$('chordEl').value='';}
   $$('#moodTags .tag,#instrTags .tag,#vocalEmotTags .tag').forEach(t=>t.classList.remove('on'));
   $$('#vocalGrid .vo').forEach(v=>v.classList.remove('on'));
   ['res-style','res-lyric','res-full'].forEach(id => {
