@@ -2725,7 +2725,7 @@ function toast(msg,type=''){
       </div>
       <div class="auth-field">
         <label class="lb">Пароль</label>
-        <input type="password" class="fi" id="loginPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="password" class="fi" autocomplete="new-password" id="loginPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-submit" onclick="doLogin()">🔑 Войти</button>
       <div class="auth-divider"><span>или</span></div>
@@ -2747,7 +2747,7 @@ function toast(msg,type=''){
       </div>
       <div class="auth-field">
         <label class="lb">Пароль</label>
-        <input type="password" class="fi" id="regPw" placeholder="Минимум 4 символа" onkeydown="if(event.key==='Enter')doRegister()">
+        <input type="password" class="fi" autocomplete="new-password" id="regPw" placeholder="Минимум 4 символа" onkeydown="if(event.key==='Enter')doRegister()">
       </div>
       <button class="auth-submit" onclick="doRegister()">✨ Создать аккаунт</button>
       <div class="auth-divider"><span>или</span></div>
@@ -2861,8 +2861,8 @@ function toast(msg,type=''){
           <div class="card">
             <div class="ch"><div class="ci ci-n">🔐</div><div class="ct"><h2>Сменить пароль</h2><p>Безопасность</p></div></div>
             <div class="cb">
-              <div class="fg"><label class="lb">Текущий пароль</label><input type="password" class="fi" id="profPwCur" placeholder="••••••••"></div>
-              <div class="fg"><label class="lb">Новый пароль</label><input type="password" class="fi" id="profPwNew" placeholder="••••••••"></div>
+              <div class="fg"><label class="lb">Текущий пароль</label><input type="password" class="fi" autocomplete="new-password" id="profPwCur" placeholder="••••••••"></div>
+              <div class="fg"><label class="lb">Новый пароль</label><input type="password" class="fi" autocomplete="new-password" id="profPwNew" placeholder="••••••••"></div>
               <button class="auth-submit" onclick="saveProfPw()" style="margin-top:2px;">🔑 Обновить</button>
             </div>
           </div>
@@ -3055,8 +3055,8 @@ function toast(msg,type=''){
             <div class="card">
               <div class="ch"><div class="ci ci-n">🔐</div><div class="ct"><h2>Смена пароля admin</h2><p>Пароль администратора</p></div></div>
               <div class="cb">
-                <div class="fg"><label class="lb">Новый пароль</label><input type="password" class="fi" id="admPwNew" placeholder="минимум 4 символа"></div>
-                <div class="fg"><label class="lb">Повторите</label><input type="password" class="fi" id="admPwRep" placeholder="••••••••"></div>
+                <div class="fg"><label class="lb">Новый пароль</label><input type="password" class="fi" autocomplete="new-password" id="admPwNew" placeholder="минимум 4 символа"></div>
+                <div class="fg"><label class="lb">Повторите</label><input type="password" class="fi" autocomplete="new-password" id="admPwRep" placeholder="••••••••"></div>
                 <button class="adbtn adbtn-p" style="width:100%;" onclick="adminChangePw()">Сохранить</button>
               </div>
             </div>
@@ -5157,7 +5157,7 @@ function initReferral(){
   if(!box) return;
   if(!u || u.role==='guest'){ box.style.display='none'; return; }
   box.style.display='';
-  var refCode = u.uid ? 'ref_' + u.uid.slice(0,8) : 'ref_guest';
+  var refCode = u.uid ? 'ref_' + (u.uid === 'admin_root' ? 'admin' : u.uid.slice(0,8)) : 'ref_guest';
   var refLink = window.location.origin + window.location.pathname + '?ref=' + refCode;
   var el = document.getElementById('refLinkEl');
   if(el) el.textContent = refLink;
