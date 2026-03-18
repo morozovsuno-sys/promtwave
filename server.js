@@ -239,12 +239,8 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
     bot.sendMessage(msg.chat.id, '🌊 Открыть PromtWaveSuno: https://promtwave-production.up.railway.app/', { parse_mode: 'Markdown' });  });
 
   bot.onText(/\/status/, async (msg) => {
-    bot.sendMessage(msg.chat.id, '📊 Проверь свой статус на сайте:
-https://promtwave-production.up.railway.app/
-
-Войди в личный кабинет → «Кабинет»');
+        bot.sendMessage(msg.chat.id, `Твой статус подписки доступен на сайте: https://promtwave-production.up.railway.app/`);
   });
-
   bot.onText(/\/promo (.+)/, async (msg, match) => {
     const code = match[1].trim().toUpperCase();
     bot.sendMessage(msg.chat.id, `🎟 Активируй промокод *${code}* на сайте:
