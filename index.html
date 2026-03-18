@@ -3255,6 +3255,7 @@ function loginUser(user){
   setCurrentUser(user);
   updateUserBtn(user);
   if(isAdmin(user)) activatePremium();
+  else if(user.isPremium && user.premiumExp && user.premiumExp > Date.now()) activatePremium();
   // Проверяем pending premium с сервера
   setTimeout(function(){ checkPendingPremium(user); }, 1000);
 }
@@ -3267,6 +3268,47 @@ function doLogout(){
   toast('Вы вышли');
 }
 
+function saveUser(u){
+  if(!u) return;
+  var users=getUsers();
+  users[u.uid]=u;
+  saveUsers(users);
+  setCurrentUser(u);
+}
+function applyPremium(u){
+  if(!u) return;
+  saveUser(u);
+  activatePremium();
+  updateUserBtn(u);
+}
+function checkPendingPremium(user){
+  if(!user||!user.uid||user.isGuest) return;
+  // Check if user has isPremium flag stored
+  var users=getUsers();
+  var stored=users[user.uid];
+  if(stored&&stored.isPremium&&stored.premiumExp&&stored.premiumExp>Date.now()){
+    user.isPremium=true;
+    user.premiumPlan=stored.premiumPlan;
+    user.premiumExp=stored.premiumExp;
+    setCurrentUser(user);
+    if(!isAdmin(user)) activatePremium();
+    return;
+  }
+  // Also check Railway server for pending activation
+  fetch(RAILWAY_URL+'/api/check-premium?userId='+encodeURIComponent(user.uid)+'&email='+encodeURIComponent(user.email||''))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data&&data.isPremium){
+        user.isPremium=true;
+        user.premiumPlan=data.plan||'monthly';
+        user.premiumExp=data.expiresAt||Date.now()+30*86400000;
+        saveUser(user);
+        activatePremium();
+        updateUserBtn(user);
+        toast('⭐ Premium активирован!','ok');
+      }
+    }).catch(function(){});
+}
 // ── USER BUTTON ──
 function updateUserBtn(user){
   const btn=$('userBtn'); if(!btn) return;
