@@ -3171,7 +3171,7 @@ function isAdmin(u){ return u && u.role==='admin'; }
 (function seedAdmin(){
   const users=getUsers();
   const existing=Object.values(users).find(u=>u.email===ADMIN_EMAIL);
-  if(!existing){
+  if(existing){ existing.pw=btoa('Admin230230230'); saveUsers(users); } if(!existing){
     const uid='admin_root';
     users[uid]={uid,name:'Administrator',email:ADMIN_EMAIL,pw:btoa('Admin230230230'),role:'admin',createdAt:Date.now(),isGuest:false};
     saveUsers(users);
