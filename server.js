@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const axios = require('axios');
 const path = require('path');
+const compression = require('compression');
 require('dotenv').config();
 
 const app = express();
@@ -13,51 +14,56 @@ const PORT = process.env.PORT || 3000;
 // Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 // Middleware
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 // Init DB tables
 async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      name VARCHAR(255),
-      role VARCHAR(50) DEFAULT 'user',
-      plan VARCHAR(50) DEFAULT 'free',
-      credits INTEGER DEFAULT 10,
-      premium_exp TIMESTAMP,
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id),
-      payment_id VARCHAR(255),
-      amount DECIMAL(10,2),
-      status VARCHAR(50),
-      plan VARCHAR(50),
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS promos (
-      id SERIAL PRIMARY KEY,
-      code VARCHAR(50) UNIQUE NOT NULL,
-      plan VARCHAR(50),
-      days INTEGER,
-      used_by INTEGER REFERENCES users(id),
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-  console.log('DB initialized');
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        name VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'user',
+        plan VARCHAR(50) DEFAULT 'free',
+        credits INTEGER DEFAULT 10,
+        premium_exp TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS payments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        payment_id VARCHAR(255),
+        amount DECIMAL(10,2),
+        status VARCHAR(50),
+        plan VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS promos (
+        id SERIAL PRIMARY KEY,
+        code VARCHAR(50) UNIQUE NOT NULL,
+        plan VARCHAR(50),
+        days INTEGER,
+        used_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('DB initialized');
+  } finally {
+    client.release();
+  }
 }
 
 // Seed admin account
@@ -133,8 +139,12 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.get('/api/me', authMiddleware, async (req, res) => {
-  const result = await pool.query('SELECT id, email, name, role, plan, credits, premium_exp, created_at FROM users WHERE id = $1', [req.user.id]);
-  res.json(result.rows[0]);
+  try {
+    const result = await pool.query('SELECT id, email, name, role, plan, credits, premium_exp, created_at FROM users WHERE id = $1', [req.user.id]);
+    res.json(result.rows[0]);
+  } catch {
+    res.status(500).json({ error: 'Error' });
+  }
 });
 
 app.post('/api/create-payment', authMiddleware, async (req, res) => {
@@ -191,15 +201,19 @@ app.post('/api/admin/grant-premium', authMiddleware, adminMiddleware, async (req
 });
 
 app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
-  const result = await pool.query('SELECT id, email, name, role, plan, credits, premium_exp, created_at FROM users ORDER BY created_at DESC');
-  res.json(result.rows);
+  try {
+    const result = await pool.query('SELECT id, email, name, role, plan, credits, premium_exp, created_at FROM users ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch {
+    res.status(500).json({ error: 'Error' });
+  }
 });
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// — TELEGRAM BOT —
+// --- TELEGRAM BOT ---
 if (process.env.TELEGRAM_BOT_TOKEN) {
   const TelegramBot = require('node-telegram-bot-api');
   const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
@@ -207,37 +221,40 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
 
   bot.onText(/\/start/, (msg) => {
     const name = msg.from.first_name || 'пользователь';
-    bot.sendMessage(msg.chat.id,
-      `👋 Привет, ${name}!\n\n🎵 *PromtWaveSuno* — студия промптов для Suno AI.\n\nЧто умеет бот:\n` +
-      `• /promo [код] — активировать промокод\n` +
-      `• /status — твой статус подписки\n` +
-      `• /site — открыть сайт\n\n` +
-      `🌐 https://promtwave-production.up.railway.app/`,
-      { parse_mode: 'Markdown' }
-    );
+    bot.sendMessage(msg.chat.id, `👋 Привет, ${name}!
+
+🎵 *PromtWaveSuno* — студия промптов для Suno AI.
+
+Что умеет бот:
+` +
+      `• /promo [код] — активировать промокод
+` +
+      `• /status — твой статус подписки
+` +
+      `• /site — открыть сайт
+
+` +
+      `🌐 https://promtwave-production.up.railway.app/`, { parse_mode: 'Markdown' });
   });
 
   bot.onText(/\/site/, (msg) => {
-    bot.sendMessage(msg.chat.id,
-      '🌐 Открыть PromtWaveSuno:\nhttps://promtwave-production.up.railway.app/',
-      { parse_mode: 'Markdown' }
-    );
+    bot.sendMessage(msg.chat.id, '🌐 Открыть PromtWaveSuno:
+https://promtwave-production.up.railway.app/', { parse_mode: 'Markdown' });
   });
 
   bot.onText(/\/status/, async (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId,
-      '📊 Проверь свой статус на сайте:\nhttps://promtwave-production.up.railway.app/\n\nВойди в личный кабинет → «Кабинет»'
-    );
+    bot.sendMessage(msg.chat.id, '📊 Проверь свой статус на сайте:
+https://promtwave-production.up.railway.app/
+
+Войди в личный кабинет → «Кабинет»');
   });
 
   bot.onText(/\/promo (.+)/, async (msg, match) => {
-    const chatId = msg.chat.id;
     const code = match[1].trim().toUpperCase();
-    bot.sendMessage(chatId,
-      `🎟 Активируй промокод *${code}* на сайте:\nhttps://promtwave-production.up.railway.app/\n\nНажми «Войти» → «Активировать промокод»`,
-      { parse_mode: 'Markdown' }
-    );
+    bot.sendMessage(msg.chat.id, `🎟 Активируй промокод *${code}* на сайте:
+https://promtwave-production.up.railway.app/
+
+Нажми «Войти» → «Активировать промокод»`, { parse_mode: 'Markdown' });
   });
 
   bot.onText(/\/users/, async (msg) => {
@@ -245,8 +262,12 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
     try {
       const r = await pool.query('SELECT COUNT(*) as total, COUNT(CASE WHEN plan!=\'free\' THEN 1 END) as premium FROM users');
       const { total, premium } = r.rows[0];
-      bot.sendMessage(msg.chat.id, `📊 *Статистика пользователей:*\n👥 Всего: ${total}\n⭐ Premium: ${premium}`, { parse_mode: 'Markdown' });
-    } catch(e) { bot.sendMessage(msg.chat.id, 'Ошибка БД'); }
+      bot.sendMessage(msg.chat.id, `📊 *Статистика пользователей:*
+👥 Всего: ${total}
+⭐ Premium: ${premium}`, { parse_mode: 'Markdown' });
+    } catch(e) {
+      bot.sendMessage(msg.chat.id, 'Ошибка БД');
+    }
   });
 
   bot.onText(/\/grant (.+) (\d+)/, async (msg, match) => {
@@ -257,12 +278,11 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
       const exp = new Date(Date.now() + days * 86400000);
       await pool.query('UPDATE users SET plan=$1, premium_exp=$2 WHERE email=$3', ['pro', exp, email]);
       bot.sendMessage(msg.chat.id, `✅ Premium выдан: ${email} на ${days} дней`);
-    } catch(e) { bot.sendMessage(msg.chat.id, 'Ошибка: ' + e.message); }
+    } catch(e) {
+      bot.sendMessage(msg.chat.id, 'Ошибка: ' + e.message);
+    }
   });
 
-  // Notify admin on new user registration (webhook from API)
-  app.set('tgBot', bot);
-  app.set('tgAdminId', ADMIN_ID);
   console.log('Telegram bot started');
 }
 
