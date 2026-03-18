@@ -238,9 +238,7 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
   });
 
   bot.onText(/\/site/, (msg) => {
-    bot.sendMessage(msg.chat.id, '🌐 Открыть PromtWaveSuno:
-https://promtwave-production.up.railway.app/', { parse_mode: 'Markdown' });
-  });
+    bot.sendMessage(msg.chat.id, '🌊 Открыть PromtWaveSuno: https://promtwave-production.up.railway.app/', { parse_mode: 'Markdown' });  });
 
   bot.onText(/\/status/, async (msg) => {
     bot.sendMessage(msg.chat.id, '📊 Проверь свой статус на сайте:
