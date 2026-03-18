@@ -2339,8 +2339,7 @@ $('clrBtn').addEventListener('click', () => {
   clearState();
   $('trackName').value=''; $('mainGenre').value=''; $('addDesc').value='';
   $('bpmRange').value=120; $('bpmDisp').textContent='120 BPM';
-  if(S.isPremium){$('keyEl').value='';$('modeEl').value='';$('timeEl').value='4/4';$('1744
-  ').value='';$('chordEl').value='';}
+  if(S.isPremium){$('keyEl').value='';$('modeEl').value='';$('timeEl').value='4/4';$('scaleEl').value='';$('chordEl').value='';}
   $$('#moodTags .tag,#instrTags .tag,#vocalEmotTags .tag').forEach(t=>t.classList.remove('on'));
   $$('#vocalGrid .vo').forEach(v=>v.classList.remove('on'));
   ['res-style','res-lyric','res-full'].forEach(id => {
