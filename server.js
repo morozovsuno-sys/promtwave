@@ -56,23 +56,7 @@ async function initDB() {
         days INTEGER,
         used_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT NOW()
-              CREATE TABLE IF NOT EXISTS telegram_users (
-        user_id INTEGER PRIMARY KEY REFERENCES users(id),
-        telegram_id BIGINT UNIQUE NOT NULL,
-        username VARCHAR(255),
-        first_name VARCHAR(255),
-        last_name VARCHAR(255),
-        linked_at TIMESTAMP DEFAULT NOW()
-      );
-      CREATE TABLE IF NOT EXISTS saved_prompts (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
-        title VARCHAR(255),
-        prompt TEXT NOT NULL,
-        parameters JSONB,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-      );
+      
     `);
     console.log('DB initialized');
   } finally {
