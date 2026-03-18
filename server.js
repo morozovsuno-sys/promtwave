@@ -58,6 +58,30 @@ async function initDB() {
   console.log('DB initialized');
 }
 
+// Seed admin account
+async function seedAdmin() {
+  const email = process.env.ADMIN_EMAIL || 'admin@promtwave.ru';
+  const password = process.env.ADMIN_PASSWORD || 'Admin2026!';
+  const name = 'Administrator';
+  try {
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      // Ensure role is admin
+      await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['admin', email]);
+      console.log('Admin account already exists, role ensured.');
+      return;
+    }
+    const hash = await bcrypt.hash(password, 10);
+    await pool.query(
+      'INSERT INTO users (email, password, name, role, plan, credits) VALUES ($1, $2, $3, $4, $5, $6)',
+      [email, hash, name, 'admin', 'ultra', 99999]
+    );
+    console.log('Admin account created: ' + email);
+  } catch (e) {
+    console.error('seedAdmin error:', e.message);
+  }
+}
+
 // Auth middleware
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -208,6 +232,6 @@ app.get('*', (req, res) => {
 });
 
 // Start
-initDB().then(() => {
+initDB().then(() => seedAdmin()).then(() => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }).catch(console.error);
