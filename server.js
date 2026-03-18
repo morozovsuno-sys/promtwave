@@ -287,6 +287,7 @@ https://promtwave-production.up.railway.app/
   });
 
   console.log('Telegram bot webhook configured');
+  }
   
 
 initDB().then(() => seedAdmin()).then(() => {
