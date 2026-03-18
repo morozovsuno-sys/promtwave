@@ -215,8 +215,18 @@ app.get('*', (req, res) => {
 // --- TELEGRAM BOT ---
 if (process.env.TELEGRAM_BOT_TOKEN) {
   const TelegramBot = require('node-telegram-bot-api');
-  const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
-  const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? parseInt(process.env.TELEGRAM_ADMIN_ID) : null;
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+  
+    // Set webhook URL
+  const WEBHOOK_URL = `https://promtwave-production.up.railway.app/bot${process.env.TELEGRAM_BOT_TOKEN}`;
+  bot.setWebHook(WEBHOOK_URL);
+
+  // Webhook endpoint
+  app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  });
+const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? parseInt(process.env.TELEGRAM_ADMIN_ID) : null;
 
   bot.onText(/\/start/, (msg) => {
     const name = msg.from.first_name || 'пользователь';
@@ -276,9 +286,8 @@ https://promtwave-production.up.railway.app/
     }
   });
 
-  console.log('Telegram bot started');
-}
+  console.log('Telegram bot webhook configured
+              };}
 
 initDB().then(() => seedAdmin()).then(() => {
-  app.listen(PORT, () => console.log(`Server on ${PORT}`));
-});
+console.log('Telegram bot started (webhook mode)');});
