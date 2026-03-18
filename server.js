@@ -287,6 +287,14 @@ https://promtwave-production.up.railway.app/
   });
 
   console.log('Telegram bot webhook configured');
+  
+  // Register bot commands menu
+  bot.setMyCommands([
+    { command: 'start',  description: '👋 Приветствие и список команд' },
+    { command: 'site',   description: '🌊 Открыть сайт PromtWaveSuno' },
+    { command: 'status', description: '📋 Статус подписки' },
+    { command: 'promo',  description: '🎟 Активировать промокод: /promo КОД' },
+  ]);
   }
   
 
