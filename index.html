@@ -3161,9 +3161,9 @@ function getUsers(){ return lsGet(LS_KEY)||{}; }
 function saveUsers(u){ lsSet(LS_KEY,u); }
 function getCurrentUser(){ return lsGet(LS_CUR); }
 function setCurrentUser(u){ lsSet(LS_CUR,u); }
-function getSaved(uid){ return lsGet(LS_SAVED+uid)||[]; }
+function getSaved(uid){ const d=lsGet(LS_SAVED+uid); return Array.isArray(d)?d:[]; }
 function setSaved(uid,arr){ lsSet(LS_SAVED+uid,arr); }
-function getHist(uid){ return lsGet(LS_HIST+uid)||[]; }
+function getHist(uid){ const d=lsGet(LS_HIST+uid); return Array.isArray(d)?d:[]; }
 function setHist(uid,arr){ lsSet(LS_HIST+uid,arr); }
 function isAdmin(u){ return u && u.role==='admin'; }
 
