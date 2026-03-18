@@ -199,6 +199,73 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// — TELEGRAM BOT —
+if (process.env.TELEGRAM_BOT_TOKEN) {
+  const TelegramBot = require('node-telegram-bot-api');
+  const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+  const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? parseInt(process.env.TELEGRAM_ADMIN_ID) : null;
+
+  bot.onText(/\/start/, (msg) => {
+    const name = msg.from.first_name || 'пользователь';
+    bot.sendMessage(msg.chat.id,
+      `👋 Привет, ${name}!\n\n🎵 *PromtWaveSuno* — студия промптов для Suno AI.\n\nЧто умеет бот:\n` +
+      `• /promo [код] — активировать промокод\n` +
+      `• /status — твой статус подписки\n` +
+      `• /site — открыть сайт\n\n` +
+      `🌐 https://promtwave-production.up.railway.app/`,
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  bot.onText(/\/site/, (msg) => {
+    bot.sendMessage(msg.chat.id,
+      '🌐 Открыть PromtWaveSuno:\nhttps://promtwave-production.up.railway.app/',
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  bot.onText(/\/status/, async (msg) => {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId,
+      '📊 Проверь свой статус на сайте:\nhttps://promtwave-production.up.railway.app/\n\nВойди в личный кабинет → «Кабинет»'
+    );
+  });
+
+  bot.onText(/\/promo (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const code = match[1].trim().toUpperCase();
+    bot.sendMessage(chatId,
+      `🎟 Активируй промокод *${code}* на сайте:\nhttps://promtwave-production.up.railway.app/\n\nНажми «Войти» → «Активировать промокод»`,
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  bot.onText(/\/users/, async (msg) => {
+    if (!ADMIN_ID || msg.chat.id !== ADMIN_ID) return;
+    try {
+      const r = await pool.query('SELECT COUNT(*) as total, COUNT(CASE WHEN plan!=\'free\' THEN 1 END) as premium FROM users');
+      const { total, premium } = r.rows[0];
+      bot.sendMessage(msg.chat.id, `📊 *Статистика пользователей:*\n👥 Всего: ${total}\n⭐ Premium: ${premium}`, { parse_mode: 'Markdown' });
+    } catch(e) { bot.sendMessage(msg.chat.id, 'Ошибка БД'); }
+  });
+
+  bot.onText(/\/grant (.+) (\d+)/, async (msg, match) => {
+    if (!ADMIN_ID || msg.chat.id !== ADMIN_ID) return;
+    const email = match[1].trim();
+    const days = parseInt(match[2]);
+    try {
+      const exp = new Date(Date.now() + days * 86400000);
+      await pool.query('UPDATE users SET plan=$1, premium_exp=$2 WHERE email=$3', ['pro', exp, email]);
+      bot.sendMessage(msg.chat.id, `✅ Premium выдан: ${email} на ${days} дней`);
+    } catch(e) { bot.sendMessage(msg.chat.id, 'Ошибка: ' + e.message); }
+  });
+
+  // Notify admin on new user registration (webhook from API)
+  app.set('tgBot', bot);
+  app.set('tgAdminId', ADMIN_ID);
+  console.log('Telegram bot started');
+}
+
 initDB().then(() => seedAdmin()).then(() => {
   app.listen(PORT, () => console.log(`Server on ${PORT}`));
 });
