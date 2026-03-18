@@ -1,7 +1,7 @@
 {
   "name": "promtwave",
   "version": "2.6.0",
-  "description": "PromtWaveSuno - Suno Prompt Studio",
+  "description": "PromtWaveSuno — Suno Prompt Studio",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,13 +10,16 @@
   "dependencies": {
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
-        "compression": "^1.7.4",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
