@@ -32,6 +32,7 @@ async function initDB() {
       role VARCHAR(50) DEFAULT 'user',
       plan VARCHAR(50) DEFAULT 'free',
       credits INTEGER DEFAULT 10,
+      premium_exp TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
@@ -47,11 +48,12 @@ async function initDB() {
     )
   `);
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS prompts (
+    CREATE TABLE IF NOT EXISTS promos (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id),
-      content TEXT,
-      style VARCHAR(255),
+      code VARCHAR(50) UNIQUE NOT NULL,
+      plan VARCHAR(50),
+      days INTEGER,
+      used_by INTEGER REFERENCES users(id),
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
@@ -66,9 +68,7 @@ async function seedAdmin() {
   try {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
-      // Ensure role is admin
       await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['admin', email]);
-      console.log('Admin account already exists, role ensured.');
       return;
     }
     const hash = await bcrypt.hash(password, 10);
@@ -99,22 +99,20 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
-// --- AUTH ROUTES ---
+// Routes
 app.post('/api/register', async (req, res) => {
   const { email, password, name } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
   try {
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (email, password, name) VALUES ($1, $2, $3) RETURNING id, email, name, role, plan, credits',
+      'INSERT INTO users (email, password, name) VALUES ($1, $2, $3) RETURNING id, email, role, plan, credits',
       [email, hash, name || '']
     );
     const user = result.rows[0];
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET);
     res.json({ token, user });
   } catch (e) {
-    if (e.code === '23505') return res.status(400).json({ error: 'Email already exists' });
-    res.status(500).json({ error: 'Server error' });
+    res.status(400).json({ error: 'Email exists or error' });
   }
 });
 
@@ -122,116 +120,85 @@ app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (!result.rows.length) return res.status(400).json({ error: 'User not found' });
     const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(400).json({ error: 'Wrong password' });
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, plan: user.plan, credits: user.credits } });
+    if (user && await bcrypt.compare(password, user.password)) {
+      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET);
+      res.json({ token, user: { id: user.id, email: user.email, role: user.role, plan: user.plan, credits: user.credits } });
+    } else {
+      res.status(400).json({ error: 'Invalid credentials' });
+    }
   } catch {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.get('/api/me', authMiddleware, async (req, res) => {
-  const result = await pool.query('SELECT id, email, name, role, plan, credits, created_at FROM users WHERE id = $1', [req.user.id]);
+  const result = await pool.query('SELECT id, email, name, role, plan, credits, premium_exp, created_at FROM users WHERE id = $1', [req.user.id]);
   res.json(result.rows[0]);
 });
 
-// --- PROMPTS ---
-app.post('/api/prompts', authMiddleware, async (req, res) => {
-  const { content, style } = req.body;
-  const user = await pool.query('SELECT credits FROM users WHERE id = $1', [req.user.id]);
-  if (user.rows[0].credits <= 0) return res.status(403).json({ error: 'No credits' });
-  await pool.query('UPDATE users SET credits = credits - 1 WHERE id = $1', [req.user.id]);
-  const result = await pool.query(
-    'INSERT INTO prompts (user_id, content, style) VALUES ($1, $2, $3) RETURNING *',
-    [req.user.id, content, style]
-  );
-  res.json(result.rows[0]);
-});
-
-app.get('/api/prompts', authMiddleware, async (req, res) => {
-  const result = await pool.query('SELECT * FROM prompts WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
-  res.json(result.rows);
-});
-
-// --- PAYMENTS (YooKassa) ---
-app.post('/api/payment/create', authMiddleware, async (req, res) => {
-  const { plan } = req.body;
-  const prices = { pro: 499, ultra: 999 };
-  const credits = { pro: 100, ultra: 500 };
-  if (!prices[plan]) return res.status(400).json({ error: 'Invalid plan' });
+app.post('/api/create-payment', authMiddleware, async (req, res) => {
+  const { amount, plan } = req.body;
   try {
     const response = await axios.post('https://api.yookassa.ru/v3/payments', {
-      amount: { value: prices[plan].toFixed(2), currency: 'RUB' },
+      amount: { value: amount, currency: 'RUB' },
       confirmation: { type: 'embedded' },
       capture: true,
-      description: `Plan: ${plan} for user ${req.user.id}`,
-      metadata: { user_id: req.user.id, plan, credits: credits[plan] }
+      description: `Premium ${plan}`,
+      metadata: { user_id: req.user.id, plan }
     }, {
       auth: { username: process.env.YOOKASSA_SHOP_ID, password: process.env.YOOKASSA_SECRET_KEY },
-      headers: { 'Idempotence-Key': `${req.user.id}-${plan}-${Date.now()}` }
+      headers: { 'Idempotence-Key': Date.now().toString() }
     });
-    await pool.query(
-      'INSERT INTO payments (user_id, payment_id, amount, status, plan) VALUES ($1, $2, $3, $4, $5)',
-      [req.user.id, response.data.id, prices[plan], 'pending', plan]
-    );
-    res.json({ confirmation_token: response.data.confirmation.confirmation_token, payment_id: response.data.id });
+    res.json({ confirmation_token: response.data.confirmation.confirmation_token });
   } catch (e) {
-    res.status(500).json({ error: 'Payment error', detail: e.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
-app.post('/api/payment/webhook', async (req, res) => {
-  const event = req.body;
-  if (event.event === 'payment.succeeded') {
-    const meta = event.object.metadata;
-    await pool.query('UPDATE payments SET status = $1 WHERE payment_id = $2', ['succeeded', event.object.id]);
-    await pool.query(
-      'UPDATE users SET plan = $1, credits = credits + $2 WHERE id = $3',
-      [meta.plan, parseInt(meta.credits), parseInt(meta.user_id)]
-    );
+app.post('/api/activate-promo', authMiddleware, async (req, res) => {
+  const { promo } = req.body;
+  try {
+    const result = await pool.query('SELECT * FROM promos WHERE code = $1 AND used_by IS NULL', [promo]);
+    if (result.rows.length) {
+      const p = result.rows[0];
+      const exp = new Date(Date.now() + (p.days || 30) * 86400000);
+      await pool.query('UPDATE users SET plan = $1, premium_exp = $2 WHERE id = $3', [p.plan || 'pro', exp, req.user.id]);
+      await pool.query('UPDATE promos SET used_by = $1 WHERE id = $2', [req.user.id, p.id]);
+      res.json({ ok: true, plan: p.plan, days: p.days, expiresAt: exp.getTime() });
+    } else {
+      res.status(400).json({ error: 'Invalid promo' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: 'Error' });
   }
-  res.json({ ok: true });
 });
 
-// --- ADMIN ROUTES ---
+app.post('/api/admin/grant-premium', authMiddleware, adminMiddleware, async (req, res) => {
+  const { email, days } = req.body;
+  try {
+    const promo = 'PWS-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+    await pool.query('INSERT INTO promos (code, plan, days) VALUES ($1, $2, $3)', [promo, 'pro', days]);
+    const uResult = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (uResult.rows.length) {
+      const exp = new Date(Date.now() + days * 86400000);
+      await pool.query('UPDATE users SET plan = $1, premium_exp = $2 WHERE id = $3', ['pro', exp, uResult.rows[0].id]);
+    }
+    res.json({ ok: true, promo });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
-  const result = await pool.query('SELECT id, email, name, role, plan, credits, created_at FROM users ORDER BY created_at DESC');
+  const result = await pool.query('SELECT id, email, name, role, plan, credits, premium_exp, created_at FROM users ORDER BY created_at DESC');
   res.json(result.rows);
 });
 
-app.patch('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  const { role, plan, credits } = req.body;
-  await pool.query('UPDATE users SET role = COALESCE($1, role), plan = COALESCE($2, plan), credits = COALESCE($3, credits) WHERE id = $4',
-    [role, plan, credits, req.params.id]);
-  res.json({ ok: true });
-});
-
-app.delete('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
-  res.json({ ok: true });
-});
-
-app.get('/api/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
-  const users = await pool.query('SELECT COUNT(*) FROM users');
-  const payments = await pool.query('SELECT COUNT(*), SUM(amount) FROM payments WHERE status = $1', ['succeeded']);
-  const prompts = await pool.query('SELECT COUNT(*) FROM prompts');
-  res.json({
-    total_users: parseInt(users.rows[0].count),
-    total_revenue: parseFloat(payments.rows[0].sum) || 0,
-    total_payments: parseInt(payments.rows[0].count),
-    total_prompts: parseInt(prompts.rows[0].count)
-  });
-});
-
-// Serve index.html for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start
 initDB().then(() => seedAdmin()).then(() => {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}).catch(console.error);
+  app.listen(PORT, () => console.log(`Server on ${PORT}`));
+});
