@@ -56,6 +56,7 @@ async function initDB() {
         days INTEGER,
         used_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT NOW()
+              );
       
     `);
     console.log('DB initialized');
