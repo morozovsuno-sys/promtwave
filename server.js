@@ -11,11 +11,16 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Telegram bot global
+let bot = null;
+const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? parseInt(process.env.TELEGRAM_ADMIN_ID) : null;
+
 // Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  idleTimeoutMillis: 30000,  connectionTimeoutMillis: 2000,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 // Middleware
@@ -56,8 +61,7 @@ async function initDB() {
         days INTEGER,
         used_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT NOW()
-              );
-      
+      );
     `);
     console.log('DB initialized');
   } finally {
@@ -115,6 +119,16 @@ app.post('/api/register', async (req, res) => {
     );
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET);
+    
+    // Notify admin via Telegram bot
+    if (bot && ADMIN_ID) {
+      try {
+        await bot.sendMessage(ADMIN_ID, `🆕 Новая регистрация!\n👤 Email: ${email}\n📝 Имя: ${name || 'не указано'}\n🎯 Plan: ${user.plan}`);
+      } catch (botErr) {
+        console.error('Bot notification error:', botErr.message);
+      }
+    }
+    
     res.json({ token, user });
   } catch (e) {
     res.status(400).json({ error: 'Email exists or error' });
@@ -215,64 +229,49 @@ app.get('*', (req, res) => {
 // --- TELEGRAM BOT ---
 if (process.env.TELEGRAM_BOT_TOKEN) {
   const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+  bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
   
-    // Set webhook URL
   const WEBHOOK_URL = `https://promtwave-production.up.railway.app/bot${process.env.TELEGRAM_BOT_TOKEN}`;
   bot.setWebHook(WEBHOOK_URL);
-
-  // Webhook endpoint
+  
   app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
     bot.processUpdate(req.body);
     res.sendStatus(200);
   });
-const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? parseInt(process.env.TELEGRAM_ADMIN_ID) : null;
-
+  
   bot.onText(/\/start/, (msg) => {
     const name = msg.from.first_name || 'пользователь';
-    bot.sendMessage(msg.chat.id, `👋 Привет, ${name}!
-
-🎵 *PromtWaveSuno* — студия промптов для Suno AI.
-
-Что умеет бот:
-` +
-      `• /promo [код] — активировать промокод
-` +
-      `• /status — твой статус подписки
-` +
-      `• /site — открыть сайт
-
-` +
-      `🌐 https://promtwave-production.up.railway.app/`, { parse_mode: 'Markdown' });
+    bot.sendMessage(msg.chat.id, `👋 Привет, ${name}!\n🎵 *PromtWaveSuno* — студия промптов для Suno AI.\nЧто умеет бот:\n` +
+      `• /promo [код] — активировать промокод\n` +
+      `• /status — твой статус подписки\n` +
+      `• /site — открыть сайт\n` +
+      `🌊 https://promtwave-production.up.railway.app/`, { parse_mode: 'Markdown' });
   });
-
+  
   bot.onText(/\/site/, (msg) => {
-    bot.sendMessage(msg.chat.id, '🌊 Открыть PromtWaveSuno: https://promtwave-production.up.railway.app/', { parse_mode: 'Markdown' });  });
-
-  bot.onText(/\/status/, async (msg) => {
-        bot.sendMessage(msg.chat.id, `Твой статус подписки доступен на сайте: https://promtwave-production.up.railway.app/`);
+    bot.sendMessage(msg.chat.id, '🌊 Открыть PromtWaveSuno: https://promtwave-production.up.railway.app/', { parse_mode: 'Markdown' });
   });
+  
+  bot.onText(/\/status/, async (msg) => {
+    bot.sendMessage(msg.chat.id, `Твой статус подписки доступен на сайте: https://promtwave-production.up.railway.app/`);
+  });
+  
   bot.onText(/\/promo (.+)/, async (msg, match) => {
     const code = match[1].trim().toUpperCase();
-    bot.sendMessage(msg.chat.id, `🎟 Активируй промокод *${code}* на сайте:
-https://promtwave-production.up.railway.app/
-
-Нажми «Войти» → «Активировать промокод»`, { parse_mode: 'Markdown' });
+    bot.sendMessage(msg.chat.id, `🎟 Активируй промокод *${code}* на сайте:\nhttps://promtwave-production.up.railway.app/\nНажми «Войти» → «Активировать промокод»`, { parse_mode: 'Markdown' });
   });
-
+  
   bot.onText(/\/users/, async (msg) => {
     if (!ADMIN_ID || msg.chat.id !== ADMIN_ID) return;
     try {
       const r = await pool.query('SELECT COUNT(*) as total, COUNT(CASE WHEN plan!=\'free\' THEN 1 END) as premium FROM users');
       const { total, premium } = r.rows[0];
-      bot.sendMessage(msg.chat.id, `📊 *Статистика пользователей:*
-👥 Всего: ${total}
-⭐ Premium: ${premium}`, { parse_mode: 'Markdown' });
+      bot.sendMessage(msg.chat.id, `📊 *Статистика пользователей:*\n👥 Всего: ${total}\n⭐ Premium: ${premium}`, { parse_mode: 'Markdown' });
     } catch(e) {
       bot.sendMessage(msg.chat.id, 'Ошибка БД');
     }
   });
-
+  
   bot.onText(/\/grant (.+) (\d+)/, async (msg, match) => {
     if (!ADMIN_ID || msg.chat.id !== ADMIN_ID) return;
     const email = match[1].trim();
@@ -285,19 +284,17 @@ https://promtwave-production.up.railway.app/
       bot.sendMessage(msg.chat.id, 'Ошибка: ' + e.message);
     }
   });
-
+  
   console.log('Telegram bot webhook configured');
   
-  // Register bot commands menu
   bot.setMyCommands([
-    { command: 'start',  description: '👋 Приветствие и список команд' },
-    { command: 'site',   description: '🌊 Открыть сайт PromtWaveSuno' },
+    { command: 'start', description: '👋 Приветствие и список команд' },
+    { command: 'site', description: '🌊 Открыть сайт PromtWaveSuno' },
     { command: 'status', description: '📋 Статус подписки' },
-    { command: 'promo',  description: '🎟 Активировать промокод: /promo КОД' },
+    { command: 'promo', description: '🎟 Активировать промокод: /promo КОД' },
   ]);
-  }
-  
+}
 
 initDB().then(() => seedAdmin()).then(() => {
-    app.listen(PORT, () => console.log(`Server on ${PORT}`));
+  app.listen(PORT, () => console.log(`Server on ${PORT}`));
 });
