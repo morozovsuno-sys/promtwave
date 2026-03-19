@@ -319,7 +319,6 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
   ]);
 
   console.log('Telegram bot webhook configured');
-}
 
   
   bot.setMyCommands([
