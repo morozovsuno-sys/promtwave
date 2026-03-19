@@ -230,48 +230,74 @@ app.get('*', (req, res) => {
 if (process.env.TELEGRAM_BOT_TOKEN) {
   const TelegramBot = require('node-telegram-bot-api');
   bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
-  
-  const WEBHOOK_URL = `https://promtwave-production.up.railway.app/bot${process.env.TELEGRAM_BOT_TOKEN}`;
-  bot.setWebHook(WEBHOOK_URL);
-  
+
+  const BASE_URL = process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : 'https://promtwave-production.up.railway.app';
+
+  const WEBHOOK_URL = `${BASE_URL}/bot${process.env.TELEGRAM_BOT_TOKEN}`;
+
+  bot.setWebHook(WEBHOOK_URL)
+    .then(() => console.log('✅ Webhook set:', WEBHOOK_URL))
+    .catch(e => console.error('❌ Webhook error:', e.message));
+
   app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
     bot.processUpdate(req.body);
     res.sendStatus(200);
   });
-  
+
+  // Тест при запуске сервера
+  if (ADMIN_ID) {
+    setTimeout(async () => {
+      try {
+        await bot.sendMessage(ADMIN_ID, '🚀 Сервер запущен! Бот работает.');
+        console.log('✅ Test notification sent to admin');
+      } catch (e) {
+        console.error('❌ Cannot send to admin. Check TELEGRAM_ADMIN_ID. Error:', e.message);
+      }
+    }, 3000);
+  } else {
+    console.warn('⚠️ TELEGRAM_ADMIN_ID not set — notifications disabled');
+  }
+
   bot.onText(/\/start/, (msg) => {
     const name = msg.from.first_name || 'пользователь';
-    bot.sendMessage(msg.chat.id, `👋 Привет, ${name}!\n🎵 *PromtWaveSuno* — студия промптов для Suno AI.\nЧто умеет бот:\n` +
+    bot.sendMessage(msg.chat.id,
+      `👋 Привет, ${name}!\n🎵 *PromtWaveSuno* — студия промптов для Suno AI.\nЧто умеет бот:\n` +
       `• /promo [код] — активировать промокод\n` +
       `• /status — твой статус подписки\n` +
       `• /site — открыть сайт\n` +
-      `🌊 https://promtwave-production.up.railway.app/`, { parse_mode: 'Markdown' });
+      `🌊 ${BASE_URL}`, { parse_mode: 'Markdown' });
   });
-  
+
   bot.onText(/\/site/, (msg) => {
-    bot.sendMessage(msg.chat.id, '🌊 Открыть PromtWaveSuno: https://promtwave-production.up.railway.app/', { parse_mode: 'Markdown' });
+    bot.sendMessage(msg.chat.id, `🌊 Открыть PromtWaveSuno: ${BASE_URL}`, { parse_mode: 'Markdown' });
   });
-  
+
   bot.onText(/\/status/, async (msg) => {
-    bot.sendMessage(msg.chat.id, `Твой статус подписки доступен на сайте: https://promtwave-production.up.railway.app/`);
+    bot.sendMessage(msg.chat.id, `Твой статус подписки доступен на сайте: ${BASE_URL}`);
   });
-  
+
   bot.onText(/\/promo (.+)/, async (msg, match) => {
     const code = match[1].trim().toUpperCase();
-    bot.sendMessage(msg.chat.id, `🎟 Активируй промокод *${code}* на сайте:\nhttps://promtwave-production.up.railway.app/\nНажми «Войти» → «Активировать промокод»`, { parse_mode: 'Markdown' });
+    bot.sendMessage(msg.chat.id,
+      `🎟 Активируй промокод *${code}* на сайте:\n${BASE_URL}\nНажми «Войти» → «Активировать промокод»`,
+      { parse_mode: 'Markdown' });
   });
-  
+
   bot.onText(/\/users/, async (msg) => {
     if (!ADMIN_ID || msg.chat.id !== ADMIN_ID) return;
     try {
       const r = await pool.query('SELECT COUNT(*) as total, COUNT(CASE WHEN plan!=\'free\' THEN 1 END) as premium FROM users');
       const { total, premium } = r.rows[0];
-      bot.sendMessage(msg.chat.id, `📊 *Статистика пользователей:*\n👥 Всего: ${total}\n⭐ Premium: ${premium}`, { parse_mode: 'Markdown' });
+      bot.sendMessage(msg.chat.id,
+        `📊 *Статистика пользователей:*\n👥 Всего: ${total}\n⭐ Premium: ${premium}`,
+        { parse_mode: 'Markdown' });
     } catch(e) {
       bot.sendMessage(msg.chat.id, 'Ошибка БД');
     }
   });
-  
+
   bot.onText(/\/grant (.+) (\d+)/, async (msg, match) => {
     if (!ADMIN_ID || msg.chat.id !== ADMIN_ID) return;
     const email = match[1].trim();
@@ -284,8 +310,17 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
       bot.sendMessage(msg.chat.id, 'Ошибка: ' + e.message);
     }
   });
-  
+
+  bot.setMyCommands([
+    { command: 'start', description: '👋 Приветствие и список команд' },
+    { command: 'site', description: '🌊 Открыть сайт PromtWaveSuno' },
+    { command: 'status', description: '📋 Статус подписки' },
+    { command: 'promo', description: '🎟 Активировать промокод: /promo КОД' },
+  ]);
+
   console.log('Telegram bot webhook configured');
+}
+
   
   bot.setMyCommands([
     { command: 'start', description: '👋 Приветствие и список команд' },
