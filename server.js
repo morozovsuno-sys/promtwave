@@ -329,6 +329,11 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
   ]);
 }
 
-initDB().then(() => seedAdmin()).then(() => {
-  app.listen(PORT, () => console.log(`Server on ${PORT}`));
-});
+// Start server immediately
+app.listen(PORT, () => console.log(`Server on ${PORT}`));
+
+// Initialize DB in background
+initDB()
+  .then(() => seedAdmin())
+  .then(() => console.log('DB initialized'))
+  .catch(err => console.error('DB init error:', err.message));
