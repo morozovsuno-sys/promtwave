@@ -77,7 +77,7 @@ async function seedAdmin() {
     const hash = await bcrypt.hash(password, 10);
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
-      await pool.query('UPDATE users SET role = $1, password = $2 WHERE email = $3', ['admin', hash, email]);
+      await pool.query('UPDATE users SET role = $1, plan = $2, credits = $3, password = $4 WHERE email = $5', ['admin', 'ultra', 99999, hash, email]);
       return;
     }
     await pool.query(
