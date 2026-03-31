@@ -2566,12 +2566,12 @@ function backToEmail(){
 //       - возвращает JSON { confirmation_token: "ct-..." }
 //  3. Впишите URL вашего эндпоинта в BACKEND_URL ниже
 //
-const RAILWAY_URL = 'https://promtwave-server-production.up.railway.app';
+const RAILWAY_URL = 'https://promtwave-production.up.railway.app';
 const ADMIN_KEY   = 'promtwave_admin_2026'; // совпадает с Railway ADMIN_KEY
 
 const YK_CONFIG = {
-  BACKEND_URL: 'https://promtwave-server-production.up.railway.app/api/create-payment', // ← Railway URL
-  PROMO_URL:   'https://promtwave-server-production.up.railway.app/api/activate-promo',  // ← Railway URL
+  BACKEND_URL: 'https://promtwave-production.up.railway.app/api/create-payment', // ← Railway URL
+  PROMO_URL:   'https://promtwave-production.up.railway.app/api/activate-promo',  // ← Railway URL
   SHOP_ID:     'YOUR_SHOP_ID',
   PLANS: {
     mon:  { amount: '299.00',  currency: 'RUB', label: '299 ₽/мес' },
