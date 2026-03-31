@@ -3326,16 +3326,35 @@ function doRegister(){
 }
 
 // ── LOGIN ──
-function doLogin(){
+async function doLogin(){
   const email=$('loginEmail').value.trim().toLowerCase();
   const pw=$('loginPw').value;
   if(!email||!pw){ showNotice('loginNotice','Заполните все поля'); return; }
-  const users=getUsers();
-  const user=Object.values(users).find(u=>u.email===email&&u.pw===btoa(pw));
-  if(!user){ showNotice('loginNotice','Неверный email или пароль'); return; }
-  loginUser(user); closeUserAuth();
-  if(isAdmin(user)) toast('Добро пожаловать, Администратор! ⚙️','ok');
-  else toast('Добро пожаловать, '+user.name+'!','ok');
+  try {
+    const resp = await fetch('/api/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,password:pw})
+    });
+    const data = await resp.json();
+    if(resp.ok && data.token){
+      localStorage.setItem('token', data.token);
+      if(data.user) localStorage.setItem('currentUser', JSON.stringify(data.user));
+      loginUser(data.user); closeUserAuth();
+      if(isAdmin(data.user)) toast('Добро пожаловать, Администратор! ⚙️','ok');
+      else toast('Добро пожаловать, '+data.user.name+'!','ok');
+      return;
+    }
+    showNotice('loginNotice', data.error||'Неверный email или пароль');
+  } catch(e){
+    // Fallback: localStorage
+    const users=getUsers();
+    const user=Object.values(users).find(u=>u.email===email&&u.pw===btoa(pw));
+    if(!user){ showNotice('loginNotice','Неверный email или пароль'); return; }
+    loginUser(user); closeUserAuth();
+    if(isAdmin(user)) toast('Добро пожаловать, Администратор! ⚙️','ok');
+    else toast('Добро пожаловать, '+user.name+'!','ok');
+  }
 }
 
 // ── GUEST LOGIN ──
