@@ -305,7 +305,7 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
       `• /promo [код] — активировать промокод\n` +
       `• /status — твой статус подписки\n` +
       `• /site — открыть сайт\n` +
-      `🌊 ${BASE_URL}`, { parse_mode: 'Markdown' });
+      `🌊 'https://promtwave-production.up.railway.app'`, { parse_mode: 'Markdown' });
   });
 
   bot.onText(/\/site/, (msg) => {
