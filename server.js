@@ -221,6 +221,22 @@ app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) =>
   }
 });
 
+app.get('/api/check-premium', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query('SELECT plan, premium_exp FROM users WHERE id = $1', [userId]);
+    if (result.rows.length) {
+      const user = result.rows[0];
+      const isPremium = user.plan === 'pro' && new Date(user.premium_exp) > new Date();
+      res.json({ isPremium, plan: user.plan, expiresAt: user.premium_exp });
+    } else {
+      res.json({ isPremium: false, plan: 'free', expiresAt: null });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
