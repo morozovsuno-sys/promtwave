@@ -254,19 +254,22 @@ app.post('/api/news', async (req, res) => {
     res.status(500).json({ error: e.message, details: e.response && e.response.data });
   }
 });
-app.get('/api/reset-admin', async (req, res) => {
+    app.get('/api/reset-admin', async (req, res) => {
   try {
     const newPass = 'Admin2026!';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@promtwave.ru';
     const hash = await bcrypt.hash(newPass, 10);
-    await pool.query("UPDATE users SET password = $1, role = 'admin', plan = 'ultra', credits = 99999 WHERE email = $2", [hash, process.env.ADMIN_EMAIL || 'admin@promtwave.ru']);
-    res.json({ ok: true, message: 'Password reset to Admin2026!' });
+    // UPSERT — вставляем если нет, обновляем если есть
+    const result = await pool.query(`
+      INSERT INTO users (email, password, name, role, plan, credits)
+      VALUES ($1, $2, 'Administrator', 'admin', 'ultra', 99999)
+      ON CONFLICT (email) DO UPDATE
+      SET password = $2, role = 'admin', plan = 'ultra', credits = 99999
+      RETURNING id, email, role
+    `, [adminEmail, hash]);
+    res.json({ ok: true, user: result.rows[0], message: 'Admin upserted with password Admin2026!' });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 // --- TELEGRAM BOT (WEBHOOK MODE) ---
 if (process.env.TELEGRAM_BOT_TOKEN) {
   const TelegramBot = require('node-telegram-bot-api');
