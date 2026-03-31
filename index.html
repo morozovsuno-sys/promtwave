@@ -3307,22 +3307,31 @@ function showNotice(id,msg,type='err'){
 }
 
 // ── REGISTER ──
-function doRegister(){
+async function doRegister(){
   const name=$('regName').value.trim();
   const email=$('regEmail').value.trim().toLowerCase();
   const pw=$('regPw').value;
   if(!name){ showNotice('regNotice','Введите имя'); return; }
   if(pw.length<4){ showNotice('regNotice','Пароль минимум 4 символа'); return; }
-  if(email===ADMIN_EMAIL){ showNotice('regNotice','Этот email зарезервирован'); return; }
-  const users=getUsers();
-  if(email&&Object.values(users).find(u=>u.email===email)){
-    showNotice('regNotice','Email уже используется'); return;
+  try {
+    const resp = await fetch('/api/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email||name+'@guest.promtwave',password:pw,name})
+    });
+    const data = await resp.json();
+    if(resp.ok && data.token){
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      loginUser(data.user);
+      closeUserAuth();
+      toast('Добро пожаловать, '+name+'! 🎉','ok');
+      return;
+    }
+    showNotice('regNotice', data.error||'Ошибка регистрации');
+  } catch(e){
+    showNotice('regNotice','Ошибка подключения к серверу');
   }
-  const uid=genUID();
-  const user={uid,name,email:email||'',pw:btoa(pw),role:'user',createdAt:Date.now(),isGuest:false};
-  users[uid]=user; saveUsers(users);
-  loginUser(user); closeUserAuth();
-  toast('Добро пожаловать, '+name+'! 🎉','ok');
 }
 
 // ── LOGIN ──
