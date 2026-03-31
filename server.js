@@ -237,6 +237,23 @@ app.get('/api/check-premium', authMiddleware, async (req, res) => {
   }
 });
 
+// --- /api/news proxy to Anthropic Claude ---
+app.post('/api/news', async (req, res) => {
+  try {
+    const body = req.body;
+    const response = await axios.post('https://api.anthropic.com/v1/messages', body, {
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'interleaved-thinking-2025-05-14',
+        'content-type': 'application/json'
+      }
+    });
+    res.json(response.data);
+  } catch (e) {
+    res.status(500).json({ error: e.message, details: e.response && e.response.data });
+  }
+});
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
