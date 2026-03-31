@@ -29,7 +29,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Init DB tables
+// Init DB
 async function initDB() {
   const client = await pool.connect();
   try {
@@ -69,11 +69,10 @@ async function initDB() {
   }
 }
 
-// Seed admin account
+// Seed admin
 async function seedAdmin() {
   const email = process.env.ADMIN_EMAIL || 'admin@promtwave.ru';
   const password = process.env.ADMIN_PASSWORD || 'Admin2026!';
-  const name = 'Administrator';
   try {
     const hash = await bcrypt.hash(password, 10);
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -83,9 +82,9 @@ async function seedAdmin() {
     }
     await pool.query(
       'INSERT INTO users (email, password, name, role, plan, credits) VALUES ($1, $2, $3, $4, $5, $6)',
-      [email, hash, name, 'admin', 'ultra', 99999]
+      [email, hash, 'Administrator', 'admin', 'ultra', 99999]
     );
-    console.log('Admin account created: ' + email);
+    console.log('Admin created: ' + email);
   } catch (e) {
     console.error('seedAdmin error:', e.message);
   }
@@ -226,24 +225,30 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- TELEGRAM BOT ---
+// --- TELEGRAM BOT (WEBHOOK MODE) ---
 if (process.env.TELEGRAM_BOT_TOKEN) {
   const TelegramBot = require('node-telegram-bot-api');
-  bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+  const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+  const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? parseInt(process.env.TELEGRAM_ADMIN_ID) : null;
+  const WEBHOOK_URL = 'https://promtwave-production.up.railway.app/bot' + process.env.TELEGRAM_BOT_TOKEN;
 
-  const BASE_URL = process.env.RAILWAY_PUBLIC_DOMAIN
-    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-    : 'https://promtwave-production.up.railway.app';
+  bot.setWebHook(WEBHOOK_URL).then(() => {
+    console.log('Webhook set:', WEBHOOK_URL);
+  }).catch(e => {
+    console.error('Webhook error:', e.message);
+  });
 
-  const WEBHOOK_URL = `${BASE_URL}/bot${process.env.TELEGRAM_BOT_TOKEN}`;
-
-  bot.setWebHook(WEBHOOK_URL)
-    .then(() => console.log('✅ Webhook set:', WEBHOOK_URL))
-    .catch(e => console.error('❌ Webhook error:', e.message));
-
-  app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
+  app.post('/bot' + process.env.TELEGRAM_BOT_TOKEN, (req, res) => {
     bot.processUpdate(req.body);
     res.sendStatus(200);
+  });
+
+  bot.onText(/\/start/, (msg) => {
+    const name = msg.from.first_name || 'пользователь';
+    bot.sendMessage(msg.chat.id,
+      `*PromtWaveSuno* — студия промптов для Suno AI\n\nПривет, ${name}! 👋\n\nКоманды:\n• /promo [код] — активировать промокод\n• /status — статус подписки\n• /site — открыть сайт`,
+      { parse_mode: 'Markdown' }
+    );
   });
 
   // Тест при запуске сервера
@@ -271,28 +276,27 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
   });
 
   bot.onText(/\/site/, (msg) => {
-    bot.sendMessage(msg.chat.id, `🌊 Открыть PromtWaveSuno: ${BASE_URL}`, { parse_mode: 'Markdown' });
+    bot.sendMessage(msg.chat.id, '🌊 https://promtwave-production.up.railway.app/');
   });
 
-  bot.onText(/\/status/, async (msg) => {
-    bot.sendMessage(msg.chat.id, `Твой статус подписки доступен на сайте: ${BASE_URL}`);
+  bot.onText(/\/status/, (msg) => {
+    bot.sendMessage(msg.chat.id, 'Статус подписки: https://promtwave-production.up.railway.app/');
   });
 
   bot.onText(/\/promo (.+)/, async (msg, match) => {
     const code = match[1].trim().toUpperCase();
     bot.sendMessage(msg.chat.id,
-      `🎟 Активируй промокод *${code}* на сайте:\n${BASE_URL}\nНажми «Войти» → «Активировать промокод»`,
-      { parse_mode: 'Markdown' });
+      `Активируй промокод *${code}* на сайте:\nhttps://promtwave-production.up.railway.app/`,
+      { parse_mode: 'Markdown' }
+    );
   });
 
   bot.onText(/\/users/, async (msg) => {
     if (!ADMIN_ID || msg.chat.id !== ADMIN_ID) return;
     try {
-      const r = await pool.query('SELECT COUNT(*) as total, COUNT(CASE WHEN plan!=\'free\' THEN 1 END) as premium FROM users');
+      const r = await pool.query("SELECT COUNT(*) as total, COUNT(CASE WHEN plan!='free' THEN 1 END) as premium FROM users");
       const { total, premium } = r.rows[0];
-      bot.sendMessage(msg.chat.id,
-        `📊 *Статистика пользователей:*\n👥 Всего: ${total}\n⭐ Premium: ${premium}`,
-        { parse_mode: 'Markdown' });
+      bot.sendMessage(msg.chat.id, `Всего: ${total}\nPremium: ${premium}`);
     } catch(e) {
       bot.sendMessage(msg.chat.id, 'Ошибка БД');
     }
@@ -305,35 +309,15 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
     try {
       const exp = new Date(Date.now() + days * 86400000);
       await pool.query('UPDATE users SET plan=$1, premium_exp=$2 WHERE email=$3', ['pro', exp, email]);
-      bot.sendMessage(msg.chat.id, `✅ Premium выдан: ${email} на ${days} дней`);
+      bot.sendMessage(msg.chat.id, `Premium выдан: ${email} на ${days} дней`);
     } catch(e) {
       bot.sendMessage(msg.chat.id, 'Ошибка: ' + e.message);
     }
   });
 
-  bot.setMyCommands([
-    { command: 'start', description: '👋 Приветствие и список команд' },
-    { command: 'site', description: '🌊 Открыть сайт PromtWaveSuno' },
-    { command: 'status', description: '📋 Статус подписки' },
-    { command: 'promo', description: '🎟 Активировать промокод: /promo КОД' },
-  ]);
-
-  console.log('Telegram bot webhook configured');
-
-  
-  bot.setMyCommands([
-    { command: 'start', description: '👋 Приветствие и список команд' },
-    { command: 'site', description: '🌊 Открыть сайт PromtWaveSuno' },
-    { command: 'status', description: '📋 Статус подписки' },
-    { command: 'promo', description: '🎟 Активировать промокод: /promo КОД' },
-  ]);
+  console.log('Telegram bot started (webhook mode)');
 }
 
-// Start server immediately
-app.listen(PORT, () => console.log(`Server on ${PORT}`));
-
-// Initialize DB in background
-initDB()
-  .then(() => seedAdmin())
-  .then(() => console.log('DB initialized'))
-  .catch(err => console.error('DB init error:', err.message));
+initDB().then(() => seedAdmin()).then(() => {
+  app.listen(PORT, () => console.log(`Server on ${PORT}`));
+});
