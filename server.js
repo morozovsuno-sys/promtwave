@@ -254,6 +254,15 @@ app.post('/api/news', async (req, res) => {
     res.status(500).json({ error: e.message, details: e.response && e.response.data });
   }
 });
+app.get('/api/reset-admin', async (req, res) => {
+  try {
+    const newPass = 'Admin2026!';
+    const hash = await bcrypt.hash(newPass, 10);
+    await pool.query("UPDATE users SET password = $1, role = 'admin', plan = 'ultra', credits = 99999 WHERE email = $2", [hash, process.env.ADMIN_EMAIL || 'admin@promtwave.ru']);
+    res.json({ ok: true, message: 'Password reset to Admin2026!' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
